@@ -1,0 +1,59 @@
+version: '2'
+services:
+
+  mysql:
+    image: mysql:5.6
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql/database:/var/lib/mysql
+      ## Custom setup for MySQL
+      - ./mysql/my.cnf:/etc/mysql/my.cnf
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=test
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=pass
+
+  maxvell:
+    image: zendesk/maxwell
+    links:
+      - mysql
+
+  zookeeper:
+    image: wurstmeister/zookeeper
+    ports:
+      - "2181:2181"
+
+  kafka:
+    build: https://github.com/wurstmeister/kafka-docker.git
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: 192.168.32.178
+      KAFKA_CREATE_TOPICS: "test:1:1"
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  node:
+    image: "node:8"
+    user: "node"
+    working_dir: /home/node/app
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./node:/home/node/app
+    expose:
+      - "8080"
+    ports:
+      - "8080:8081"
+    command: "npm start"
+    links:
+      - redis
+
+  redis:
+    image: redis:2.8
+    restart: always
+    ports:
+      - "6379:6379"
