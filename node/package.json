@@ -4,13 +4,15 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "npm install && node index.js"
+    "kafka": "npm install && node kafka.js",
+    "rabbit": "npm install && node rabbit.js"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
     "express": "^4.13.3",
     "kafka-node": "^2.2.3",
+    "amqp": "*",
     "redis": "*"
   }
 }
