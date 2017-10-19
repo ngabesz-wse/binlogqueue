@@ -1,0 +1,84 @@
+version: '2'
+services:
+  mysql:
+    image: mysql:5.6
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql/database:/var/lib/mysql
+      - ./mysql/my.cnf:/etc/mysql/my.cnf
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=test
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=pass
+
+  maxvell:
+    image: nebez/maxwell
+    volumes:
+      - ./rabbit.conf:/rabbit.conf
+    links:
+      - mysql
+      - rabbitmq
+    depends_on:
+      - mysql
+      - rabbitmq
+    command: "bin/maxwell --config=/rabbit.conf"
+    environment:
+      MYSQL_USERNAME: root
+      MYSQL_PASSWORD: root
+      MYSQL_HOST: mysql
+      RABBIT_HOST: rabbitmq
+      
+  rabbitmq:
+    image: rabbitmq:3-management
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8083:15672"
+
+  node:
+    image: "node:8"
+    user: "node"
+    working_dir: /home/node/app
+    depends_on:
+      - rabbitmq
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./node:/home/node/app
+    expose:
+      - "8080"
+    ports:
+      - "8080:8081"
+    command: "npm run rabbit"
+    links:
+      - redis
+      - rabbitmq
+  
+  redisCommander:
+    image: tenstartups/redis-commander
+    command: --redis-host redis
+    links:
+      - redis
+    ports:
+      - "8081:8081"
+    restart: always
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    links:
+      - mysql
+    depends_on:
+      - mysql
+    restart: always
+    ports:
+      - "8082:80"
+    environment:
+      PMA_HOSTS: mysql
+
+  redis:
+    image: redis:2.8
+    restart: always
+    ports:
+      - "6379:6379"
